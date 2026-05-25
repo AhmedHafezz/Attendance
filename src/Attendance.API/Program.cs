@@ -1,5 +1,6 @@
 using System.Text;
 using Attendance.API.Data;
+using Npgsql;
 using Attendance.API.Middleware;
 using Attendance.API.Services;
 using Attendance.API.Services.Interfaces;
@@ -12,7 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");

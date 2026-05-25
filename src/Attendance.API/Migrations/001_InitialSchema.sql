@@ -1,191 +1,191 @@
 -- ============================================================
 -- Attendance Management System – Initial Schema Migration
--- Target: SQL Server 2019+
+-- Target: PostgreSQL 14+
 -- ============================================================
 
 -- -----------------------------------------------
 -- 1. COMPANIES
 -- -----------------------------------------------
-CREATE TABLE Companies (
-    Id          INT             IDENTITY(1,1) PRIMARY KEY,
-    Name        NVARCHAR(200)   NOT NULL,
-    Code        NVARCHAR(50)    NOT NULL,
-    LogoUrl     NVARCHAR(500)   NULL,
-    IsActive    BIT             NOT NULL DEFAULT 1,
-    CreatedAt   DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
+CREATE TABLE companies (
+    id          SERIAL          PRIMARY KEY,
+    name        VARCHAR(200)    NOT NULL,
+    code        VARCHAR(50)     NOT NULL,
+    logo_url    VARCHAR(500),
+    is_active   BOOLEAN         NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT UQ_Companies_Code UNIQUE (Code)
+    CONSTRAINT uq_companies_code UNIQUE (code)
 );
 
 -- -----------------------------------------------
 -- 2. BRANCHES
 -- -----------------------------------------------
-CREATE TABLE Branches (
-    Id          INT             IDENTITY(1,1) PRIMARY KEY,
-    CompanyId   INT             NOT NULL,
-    Name        NVARCHAR(200)   NOT NULL,
-    Code        NVARCHAR(50)    NOT NULL,
-    Address     NVARCHAR(500)   NULL,
-    IsActive    BIT             NOT NULL DEFAULT 1,
-    CreatedAt   DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
+CREATE TABLE branches (
+    id          SERIAL          PRIMARY KEY,
+    company_id  INT             NOT NULL,
+    name        VARCHAR(200)    NOT NULL,
+    code        VARCHAR(50)     NOT NULL,
+    address     VARCHAR(500),
+    is_active   BOOLEAN         NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT FK_Branches_Companies  FOREIGN KEY (CompanyId) REFERENCES Companies(Id),
-    CONSTRAINT UQ_Branches_CompanyCode UNIQUE (CompanyId, Code)
+    CONSTRAINT fk_branches_companies  FOREIGN KEY (company_id) REFERENCES companies(id),
+    CONSTRAINT uq_branches_company_code UNIQUE (company_id, code)
 );
 
-CREATE INDEX IX_Branches_CompanyId ON Branches (CompanyId);
+CREATE INDEX ix_branches_company_id ON branches (company_id);
 
 -- -----------------------------------------------
 -- 3. EMPLOYEES
 -- -----------------------------------------------
-CREATE TABLE Employees (
-    Id                  INT             IDENTITY(1,1) PRIMARY KEY,
-    CompanyId           INT             NOT NULL,
-    BranchId            INT             NOT NULL,
-    EmployeeCode        NVARCHAR(50)    NOT NULL,
-    FirstName           NVARCHAR(100)   NOT NULL,
-    LastName            NVARCHAR(100)   NOT NULL,
-    Email               NVARCHAR(256)   NOT NULL,
-    PasswordHash        NVARCHAR(256)   NOT NULL,
-    Phone               NVARCHAR(30)    NULL,
-    Role                TINYINT         NOT NULL DEFAULT 0, -- 0=Employee, 1=Manager, 2=Admin
-    ProfileImageUrl     NVARCHAR(500)   NULL,
-    IsActive            BIT             NOT NULL DEFAULT 1,
-    RefreshToken        NVARCHAR(256)   NULL,
-    RefreshTokenExpiry  DATETIME2       NULL,
-    CreatedAt           DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
+CREATE TABLE employees (
+    id                  SERIAL          PRIMARY KEY,
+    company_id          INT             NOT NULL,
+    branch_id           INT             NOT NULL,
+    employee_code       VARCHAR(50)     NOT NULL,
+    first_name          VARCHAR(100)    NOT NULL,
+    last_name           VARCHAR(100)    NOT NULL,
+    email               VARCHAR(256)    NOT NULL,
+    password_hash       VARCHAR(256)    NOT NULL,
+    phone               VARCHAR(30),
+    role                SMALLINT        NOT NULL DEFAULT 0, -- 0=Employee,1=Manager,2=Admin
+    profile_image_url   VARCHAR(500),
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    refresh_token       VARCHAR(256),
+    refresh_token_expiry TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT FK_Employees_Companies  FOREIGN KEY (CompanyId) REFERENCES Companies(Id),
-    CONSTRAINT FK_Employees_Branches   FOREIGN KEY (BranchId)  REFERENCES Branches(Id),
-    CONSTRAINT UQ_Employees_Email      UNIQUE (Email),
-    CONSTRAINT UQ_Employees_Code       UNIQUE (EmployeeCode)
+    CONSTRAINT fk_employees_companies FOREIGN KEY (company_id) REFERENCES companies(id),
+    CONSTRAINT fk_employees_branches  FOREIGN KEY (branch_id)  REFERENCES branches(id),
+    CONSTRAINT uq_employees_email     UNIQUE (email),
+    CONSTRAINT uq_employees_code      UNIQUE (employee_code)
 );
 
-CREATE INDEX IX_Employees_CompanyId  ON Employees (CompanyId);
-CREATE INDEX IX_Employees_BranchId   ON Employees (BranchId);
-CREATE INDEX IX_Employees_IsActive   ON Employees (IsActive);
+CREATE INDEX ix_employees_company_id ON employees (company_id);
+CREATE INDEX ix_employees_branch_id  ON employees (branch_id);
+CREATE INDEX ix_employees_is_active  ON employees (is_active);
 
 -- -----------------------------------------------
 -- 4. ZK DEVICES
 -- -----------------------------------------------
-CREATE TABLE ZKDevices (
-    Id              INT             IDENTITY(1,1) PRIMARY KEY,
-    BranchId        INT             NOT NULL,
-    DeviceSerial    NVARCHAR(100)   NOT NULL,
-    DeviceName      NVARCHAR(200)   NOT NULL,
-    DeviceKey       NVARCHAR(256)   NOT NULL,
-    LastSyncAt      DATETIME2       NULL,
-    IsActive        BIT             NOT NULL DEFAULT 1,
-    CreatedAt       DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
+CREATE TABLE zk_devices (
+    id              SERIAL          PRIMARY KEY,
+    branch_id       INT             NOT NULL,
+    device_serial   VARCHAR(100)    NOT NULL,
+    device_name     VARCHAR(200)    NOT NULL,
+    device_key      VARCHAR(256)    NOT NULL,
+    last_sync_at    TIMESTAMPTZ,
+    is_active       BOOLEAN         NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT FK_ZKDevices_Branches    FOREIGN KEY (BranchId) REFERENCES Branches(Id),
-    CONSTRAINT UQ_ZKDevices_Serial      UNIQUE (DeviceSerial)
+    CONSTRAINT fk_zk_devices_branches FOREIGN KEY (branch_id) REFERENCES branches(id),
+    CONSTRAINT uq_zk_devices_serial   UNIQUE (device_serial)
 );
 
-CREATE INDEX IX_ZKDevices_BranchId ON ZKDevices (BranchId);
+CREATE INDEX ix_zk_devices_branch_id ON zk_devices (branch_id);
 
 -- -----------------------------------------------
 -- 5. ATTENDANCE LOGS
 -- -----------------------------------------------
-CREATE TABLE AttendanceLogs (
-    Id          BIGINT          IDENTITY(1,1) PRIMARY KEY,
-    EmployeeId  INT             NOT NULL,
-    BranchId    INT             NOT NULL,
-    PunchType   TINYINT         NOT NULL, -- 0=CheckIn, 1=CheckOut
-    PunchTime   DATETIME2       NOT NULL,
-    Latitude    FLOAT           NULL,
-    Longitude   FLOAT           NULL,
-    Source      TINYINT         NOT NULL DEFAULT 0, -- 0=Mobile, 1=ZKDevice, 2=Manual
-    DeviceId    INT             NULL,
-    IsValid     BIT             NOT NULL DEFAULT 1,
-    Notes       NVARCHAR(500)   NULL,
-    CreatedAt   DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
+CREATE TABLE attendance_logs (
+    id          BIGSERIAL       PRIMARY KEY,
+    employee_id INT             NOT NULL,
+    branch_id   INT             NOT NULL,
+    punch_type  SMALLINT        NOT NULL, -- 0=CheckIn, 1=CheckOut
+    punch_time  TIMESTAMPTZ     NOT NULL,
+    latitude    DOUBLE PRECISION,
+    longitude   DOUBLE PRECISION,
+    source      SMALLINT        NOT NULL DEFAULT 0, -- 0=Mobile,1=ZKDevice,2=Manual
+    device_id   INT,
+    is_valid    BOOLEAN         NOT NULL DEFAULT TRUE,
+    notes       VARCHAR(500),
+    created_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT FK_AttendanceLogs_Employees  FOREIGN KEY (EmployeeId) REFERENCES Employees(Id),
-    CONSTRAINT FK_AttendanceLogs_Branches   FOREIGN KEY (BranchId)   REFERENCES Branches(Id),
-    CONSTRAINT FK_AttendanceLogs_ZKDevices  FOREIGN KEY (DeviceId)   REFERENCES ZKDevices(Id)
+    CONSTRAINT fk_attendance_employees FOREIGN KEY (employee_id) REFERENCES employees(id),
+    CONSTRAINT fk_attendance_branches  FOREIGN KEY (branch_id)   REFERENCES branches(id),
+    CONSTRAINT fk_attendance_devices   FOREIGN KEY (device_id)   REFERENCES zk_devices(id) ON DELETE SET NULL
 );
 
-CREATE INDEX IX_AttendanceLogs_Employee_Time ON AttendanceLogs (EmployeeId, PunchTime DESC);
-CREATE INDEX IX_AttendanceLogs_Branch_Time   ON AttendanceLogs (BranchId, PunchTime DESC);
-CREATE INDEX IX_AttendanceLogs_PunchTime     ON AttendanceLogs (PunchTime DESC);
+CREATE INDEX ix_attendance_employee_time ON attendance_logs (employee_id, punch_time DESC);
+CREATE INDEX ix_attendance_branch_time   ON attendance_logs (branch_id, punch_time DESC);
+CREATE INDEX ix_attendance_punch_time    ON attendance_logs (punch_time DESC);
 
 -- -----------------------------------------------
--- 6. DEVICE LOGS (raw ZK device entries)
+-- 6. DEVICE LOGS
 -- -----------------------------------------------
-CREATE TABLE DeviceLogs (
-    Id                  BIGINT          IDENTITY(1,1) PRIMARY KEY,
-    DeviceId            INT             NOT NULL,
-    EmployeeCode        NVARCHAR(50)    NOT NULL,
-    PunchTime           DATETIME2       NOT NULL,
-    RawPunchType        INT             NOT NULL,
-    IsSynced            BIT             NOT NULL DEFAULT 0,
-    SyncedAt            DATETIME2       NULL,
-    AttendanceLogId     BIGINT          NULL,
-    CreatedAt           DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
+CREATE TABLE device_logs (
+    id                  BIGSERIAL       PRIMARY KEY,
+    device_id           INT             NOT NULL,
+    employee_code       VARCHAR(50)     NOT NULL,
+    punch_time          TIMESTAMPTZ     NOT NULL,
+    raw_punch_type      INT             NOT NULL,
+    is_synced           BOOLEAN         NOT NULL DEFAULT FALSE,
+    synced_at           TIMESTAMPTZ,
+    attendance_log_id   BIGINT,
+    created_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT FK_DeviceLogs_ZKDevices      FOREIGN KEY (DeviceId)        REFERENCES ZKDevices(Id),
-    CONSTRAINT FK_DeviceLogs_AttendanceLogs FOREIGN KEY (AttendanceLogId) REFERENCES AttendanceLogs(Id)
+    CONSTRAINT fk_device_logs_devices    FOREIGN KEY (device_id)         REFERENCES zk_devices(id),
+    CONSTRAINT fk_device_logs_attendance FOREIGN KEY (attendance_log_id) REFERENCES attendance_logs(id)
 );
 
-CREATE INDEX IX_DeviceLogs_Device_Time ON DeviceLogs (DeviceId, PunchTime DESC);
-CREATE INDEX IX_DeviceLogs_IsSynced    ON DeviceLogs (IsSynced);
+CREATE INDEX ix_device_logs_device_time ON device_logs (device_id, punch_time DESC);
+CREATE INDEX ix_device_logs_is_synced   ON device_logs (is_synced);
 
 -- -----------------------------------------------
 -- 7. GEO FENCES
 -- -----------------------------------------------
-CREATE TABLE GeoFences (
-    Id              INT             IDENTITY(1,1) PRIMARY KEY,
-    BranchId        INT             NOT NULL,
-    Name            NVARCHAR(200)   NOT NULL,
-    Latitude        FLOAT           NOT NULL,
-    Longitude       FLOAT           NOT NULL,
-    RadiusMeters    INT             NOT NULL DEFAULT 100,
-    EnforceOnMobile BIT             NOT NULL DEFAULT 1,
-    IsActive        BIT             NOT NULL DEFAULT 1,
-    CreatedAt       DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
+CREATE TABLE geo_fences (
+    id                SERIAL          PRIMARY KEY,
+    branch_id         INT             NOT NULL,
+    name              VARCHAR(200)    NOT NULL,
+    latitude          DOUBLE PRECISION NOT NULL,
+    longitude         DOUBLE PRECISION NOT NULL,
+    radius_meters     INT             NOT NULL DEFAULT 100,
+    enforce_on_mobile BOOLEAN         NOT NULL DEFAULT TRUE,
+    is_active         BOOLEAN         NOT NULL DEFAULT TRUE,
+    created_at        TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT FK_GeoFences_Branches FOREIGN KEY (BranchId) REFERENCES Branches(Id) ON DELETE CASCADE
+    CONSTRAINT fk_geo_fences_branches FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IX_GeoFences_BranchId ON GeoFences (BranchId);
+CREATE INDEX ix_geo_fences_branch_id ON geo_fences (branch_id);
 
 -- -----------------------------------------------
 -- 8. VISITOR LOGS
 -- -----------------------------------------------
-CREATE TABLE VisitorLogs (
-    Id              BIGINT          IDENTITY(1,1) PRIMARY KEY,
-    BranchId        INT             NOT NULL,
-    VisitorName     NVARCHAR(200)   NOT NULL,
-    VisitorPhone    NVARCHAR(30)    NULL,
-    VisitorEmail    NVARCHAR(256)   NULL,
-    HostEmployeeId  INT             NULL,
-    Purpose         NVARCHAR(500)   NULL,
-    CheckInTime     DATETIME2       NOT NULL,
-    CheckOutTime    DATETIME2       NULL,
-    BadgeNumber     NVARCHAR(50)    NULL,
-    NationalId      NVARCHAR(50)    NULL,
-    CreatedAt       DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
+CREATE TABLE visitor_logs (
+    id                BIGSERIAL       PRIMARY KEY,
+    branch_id         INT             NOT NULL,
+    visitor_name      VARCHAR(200)    NOT NULL,
+    visitor_phone     VARCHAR(30),
+    visitor_email     VARCHAR(256),
+    host_employee_id  INT,
+    purpose           VARCHAR(500),
+    check_in_time     TIMESTAMPTZ     NOT NULL,
+    check_out_time    TIMESTAMPTZ,
+    badge_number      VARCHAR(50),
+    national_id       VARCHAR(50),
+    created_at        TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT FK_VisitorLogs_Branches  FOREIGN KEY (BranchId)       REFERENCES Branches(Id),
-    CONSTRAINT FK_VisitorLogs_Employees FOREIGN KEY (HostEmployeeId) REFERENCES Employees(Id) ON DELETE SET NULL
+    CONSTRAINT fk_visitor_logs_branches  FOREIGN KEY (branch_id)        REFERENCES branches(id),
+    CONSTRAINT fk_visitor_logs_employees FOREIGN KEY (host_employee_id) REFERENCES employees(id) ON DELETE SET NULL
 );
 
-CREATE INDEX IX_VisitorLogs_BranchId    ON VisitorLogs (BranchId);
-CREATE INDEX IX_VisitorLogs_CheckInTime ON VisitorLogs (CheckInTime DESC);
+CREATE INDEX ix_visitor_logs_branch_id    ON visitor_logs (branch_id);
+CREATE INDEX ix_visitor_logs_check_in     ON visitor_logs (check_in_time DESC);
 
 -- -----------------------------------------------
 -- SEED: default company + admin employee
 -- -----------------------------------------------
-INSERT INTO Companies (Name, Code) VALUES (N'MATRIX Corp', 'MATRIX');
+INSERT INTO companies (name, code) VALUES ('MATRIX Corp', 'MATRIX');
 
-INSERT INTO Branches (CompanyId, Name, Code, Address)
-VALUES (1, N'Head Office', 'HQ', N'Cairo, Egypt');
+INSERT INTO branches (company_id, name, code, address)
+VALUES (1, 'Head Office', 'HQ', 'Cairo, Egypt');
 
 -- Password: Admin@123  (BCrypt hash)
-INSERT INTO Employees (CompanyId, BranchId, EmployeeCode, FirstName, LastName,
-                        Email, PasswordHash, Role)
-VALUES (1, 1, 'EMP-001', N'System', N'Admin',
+INSERT INTO employees (company_id, branch_id, employee_code, first_name, last_name,
+                        email, password_hash, role)
+VALUES (1, 1, 'EMP-001', 'System', 'Admin',
         'admin@matrix.com',
-        '$2a$11$K7rPbYHjAbHqKVGcqbqpheKT.VVpMJMGGEOOhpZ1h.VjYiDfklTHy', -- Admin@123
-        2); -- Admin role
+        '$2a$11$K7rPbYHjAbHqKVGcqbqpheKT.VVpMJMGGEOOhpZ1h.VjYiDfklTHy',
+        2);
