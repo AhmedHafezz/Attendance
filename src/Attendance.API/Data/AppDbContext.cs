@@ -68,7 +68,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(dl => new { dl.DeviceId, dl.PunchTime });
             e.HasIndex(dl => dl.IsSynced);
             e.Property(dl => dl.EmployeeCode).HasMaxLength(50).IsRequired();
-            e.HasOne(dl => dl.Device).WithMany(d => d.DeviceLogs).HasForeignKey(dl => dl.DeviceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(dl => dl.Device).WithMany(d => d.DeviceLogs).HasForeignKey(dl => dl.DeviceId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<GeoFence>(e =>

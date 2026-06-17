@@ -1,4 +1,5 @@
 using System.Text;
+using Attendance.API.Configuration;
 using Attendance.API.Data;
 using Npgsql;
 using Attendance.API.Middleware;
@@ -42,6 +43,14 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.AddScoped<IGpsService, GpsService>();
 builder.Services.AddScoped<IZKSyncService, ZKSyncService>();
+
+// Matrix COSEC integration: pull/poll-based sync via a background hosted service
+builder.Services.Configure<CosecSettings>(builder.Configuration.GetSection("CosecSettings"));
+builder.Services.AddHttpClient<ICosecSyncService, CosecSyncService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+builder.Services.AddHostedService<CosecSyncWorker>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

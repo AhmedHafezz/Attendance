@@ -30,5 +30,6 @@ public enum AttendanceSource
 {
     Mobile = 0,
     ZKDevice = 1,
-    Manual = 2
+    Manual = 2,
+    Cosec = 3
 }

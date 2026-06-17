@@ -95,7 +95,7 @@ CREATE TABLE attendance_logs (
     punch_time  TIMESTAMPTZ     NOT NULL,
     latitude    DOUBLE PRECISION,
     longitude   DOUBLE PRECISION,
-    source      SMALLINT        NOT NULL DEFAULT 0, -- 0=Mobile,1=ZKDevice,2=Manual
+    source      SMALLINT        NOT NULL DEFAULT 0, -- 0=Mobile,1=ZKDevice,2=Manual,3=Cosec
     device_id   INT,
     is_valid    BOOLEAN         NOT NULL DEFAULT TRUE,
     notes       VARCHAR(500),
@@ -115,7 +115,7 @@ CREATE INDEX ix_attendance_punch_time    ON attendance_logs (punch_time DESC);
 -- -----------------------------------------------
 CREATE TABLE device_logs (
     id                  BIGSERIAL       PRIMARY KEY,
-    device_id           INT             NOT NULL,
+    device_id           INT,            -- NULL for pull-based sources (e.g. COSEC) with no registered ZKDevice row
     employee_code       VARCHAR(50)     NOT NULL,
     punch_time          TIMESTAMPTZ     NOT NULL,
     raw_punch_type      INT             NOT NULL,
@@ -124,7 +124,7 @@ CREATE TABLE device_logs (
     attendance_log_id   BIGINT,
     created_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT fk_device_logs_devices    FOREIGN KEY (device_id)         REFERENCES zk_devices(id),
+    CONSTRAINT fk_device_logs_devices    FOREIGN KEY (device_id)         REFERENCES zk_devices(id) ON DELETE SET NULL,
     CONSTRAINT fk_device_logs_attendance FOREIGN KEY (attendance_log_id) REFERENCES attendance_logs(id)
 );
 
