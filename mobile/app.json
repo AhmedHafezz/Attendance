@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "MATRIX Attendance",
+    "slug": "matrix-attendance",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "matrixattendance",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.matrix.attendance",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "MATRIX Attendance needs your location to verify you are within an approved check-in/check-out zone."
+      }
+    },
+    "android": {
+      "package": "com.matrix.attendance",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0F19",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "MATRIX Attendance needs your location to verify you are within an approved check-in/check-out zone."
+        }
+      ]
+    ]
+  }
+}
