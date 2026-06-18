@@ -97,7 +97,6 @@ CREATE TABLE attendance_logs (
     longitude   DOUBLE PRECISION,
     source      SMALLINT        NOT NULL DEFAULT 0, -- 0=Mobile,1=ZKDevice,2=Manual,3=Cosec
     device_id   INT,
-    is_valid    BOOLEAN         NOT NULL DEFAULT TRUE,
     notes       VARCHAR(500),
     created_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 

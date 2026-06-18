@@ -27,8 +27,6 @@ export interface PunchResponse {
   id: number;
   punchType: PunchType;
   punchTime: string;
-  isValid: boolean;
-  locationValidated: boolean;
   message?: string | null;
 }
 
@@ -41,7 +39,6 @@ export interface AttendanceHistoryItem {
   latitude?: number | null;
   longitude?: number | null;
   source: string;
-  isValid: boolean;
   notes?: string | null;
   branchName: string;
 }

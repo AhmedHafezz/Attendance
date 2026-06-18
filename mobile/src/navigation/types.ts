@@ -11,6 +11,7 @@ export type MainTabParamList = {
   HomeStack: undefined;
   Attendance: undefined;
   Visitors: undefined;
+  Team: undefined;
   Profile: undefined;
 };
 

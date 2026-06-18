@@ -56,7 +56,6 @@ export default function AttendanceScreen() {
                 label={item.punchType === PunchType.CheckIn ? 'Check In' : 'Check Out'}
                 tone={item.punchType === PunchType.CheckIn ? 'success' : 'neutral'}
               />
-              {!item.isValid && <StatusPill label="Outside Zone" tone="danger" />}
             </View>
           </Card>
         )}

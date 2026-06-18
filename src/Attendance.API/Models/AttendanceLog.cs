@@ -11,7 +11,6 @@ public class AttendanceLog
     public double? Longitude { get; set; }
     public AttendanceSource Source { get; set; } = AttendanceSource.Mobile;
     public int? DeviceId { get; set; }
-    public bool IsValid { get; set; } = true;
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

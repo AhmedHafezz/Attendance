@@ -54,8 +54,7 @@ public class ZKSyncService(AppDbContext db) : IZKSyncService
                     PunchType = punchType,
                     PunchTime = entry.PunchTime,
                     Source = AttendanceSource.ZKDevice,
-                    DeviceId = deviceId,
-                    IsValid = true
+                    DeviceId = deviceId
                 };
 
                 db.AttendanceLogs.Add(attendanceLog);

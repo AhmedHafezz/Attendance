@@ -12,7 +12,6 @@ public class AttendanceHistoryDto
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public string Source { get; set; } = string.Empty;
-    public bool IsValid { get; set; }
     public string? Notes { get; set; }
     public string BranchName { get; set; } = string.Empty;
 }

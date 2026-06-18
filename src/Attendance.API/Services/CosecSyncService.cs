@@ -111,7 +111,6 @@ public class CosecSyncService(
                         PunchType = punchType,
                         PunchTime = punchTimeUtc,
                         Source = AttendanceSource.Cosec,
-                        IsValid = true,
                         Notes = $"COSEC SPFID {punch.SpfId}"
                     };
 

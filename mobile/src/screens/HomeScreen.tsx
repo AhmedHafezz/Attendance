@@ -78,7 +78,7 @@ export default function HomeScreen() {
         longitude: location?.longitude,
       });
 
-      Alert.alert(result.isValid ? 'Success' : 'Recorded', result.message ?? 'Punch recorded.');
+      Alert.alert('Success', result.message ?? 'Punch recorded.');
       await loadSummary();
     } catch (err) {
       Alert.alert('Punch Failed', err instanceof ApiError ? err.message : 'Please try again.');

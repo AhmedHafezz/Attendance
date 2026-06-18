@@ -26,3 +26,12 @@ export function getHistory(from?: string, to?: string) {
 export function getSummary(year: number, month: number) {
   return apiRequest<AttendanceSummaryItem[]>(`/attendance/summary?year=${year}&month=${month}`);
 }
+
+export function getBranchAttendance(branchId: number, date?: string) {
+  const params = new URLSearchParams();
+  if (date) params.set('date', date);
+  const query = params.toString();
+  return apiRequest<AttendanceHistoryItem[]>(
+    `/attendance/branch/${branchId}${query ? `?${query}` : ''}`,
+  );
+}

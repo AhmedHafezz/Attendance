@@ -45,7 +45,7 @@ export default function PunchScreen() {
         longitude: geo.longitude,
         notes: notes.trim() || undefined,
       });
-      Alert.alert(result.isValid ? 'Success' : 'Recorded', result.message ?? 'Punch recorded.', [
+      Alert.alert('Success', result.message ?? 'Punch recorded.', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (err) {

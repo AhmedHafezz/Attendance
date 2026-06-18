@@ -6,23 +6,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Attendance.API.Services;
 
-public class AttendanceService(AppDbContext db, IGpsService gps) : IAttendanceService
+public class AttendanceService(AppDbContext db) : IAttendanceService
 {
     public async Task<PunchResponse> PunchAsync(int employeeId, PunchRequest request)
     {
         var employee = await db.Employees
             .FirstOrDefaultAsync(e => e.Id == employeeId && e.IsActive)
             ?? throw new KeyNotFoundException("Employee not found or inactive.");
-
-        bool locationValidated = false;
-        bool isValid = true;
-
-        if (request.Latitude.HasValue && request.Longitude.HasValue)
-        {
-            locationValidated = await gps.IsWithinGeoFenceAsync(
-                employee.BranchId, request.Latitude.Value, request.Longitude.Value);
-            isValid = locationValidated;
-        }
 
         var log = new AttendanceLog
         {
@@ -33,7 +23,6 @@ public class AttendanceService(AppDbContext db, IGpsService gps) : IAttendanceSe
             Latitude = request.Latitude,
             Longitude = request.Longitude,
             Source = AttendanceSource.Mobile,
-            IsValid = isValid,
             Notes = request.Notes
         };
 
@@ -45,11 +34,7 @@ public class AttendanceService(AppDbContext db, IGpsService gps) : IAttendanceSe
             Id = log.Id,
             PunchType = log.PunchType,
             PunchTime = log.PunchTime,
-            IsValid = log.IsValid,
-            LocationValidated = locationValidated,
-            Message = isValid
-                ? $"{request.PunchType} recorded successfully."
-                : "Punch recorded but location is outside the allowed geo-fence."
+            Message = $"{request.PunchType} recorded successfully."
         };
     }
 
@@ -76,7 +61,6 @@ public class AttendanceService(AppDbContext db, IGpsService gps) : IAttendanceSe
                 Latitude = a.Latitude,
                 Longitude = a.Longitude,
                 Source = a.Source.ToString(),
-                IsValid = a.IsValid,
                 Notes = a.Notes,
                 BranchName = a.Branch.Name
             })
@@ -90,7 +74,7 @@ public class AttendanceService(AppDbContext db, IGpsService gps) : IAttendanceSe
         var to = from.AddMonths(1);
 
         var logs = await db.AttendanceLogs
-            .Where(a => a.EmployeeId == employeeId && a.PunchTime >= from && a.PunchTime < to && a.IsValid)
+            .Where(a => a.EmployeeId == employeeId && a.PunchTime >= from && a.PunchTime < to)
             .OrderBy(a => a.PunchTime)
             .ToListAsync();
 
@@ -139,7 +123,6 @@ public class AttendanceService(AppDbContext db, IGpsService gps) : IAttendanceSe
                 Latitude = a.Latitude,
                 Longitude = a.Longitude,
                 Source = a.Source.ToString(),
-                IsValid = a.IsValid,
                 Notes = a.Notes,
                 BranchName = a.Branch.Name
             })
