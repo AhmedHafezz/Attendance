@@ -128,4 +128,31 @@ public class AttendanceService(AppDbContext db) : IAttendanceService
             })
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<AttendanceHistoryDto>> GetCompanyAttendanceAsync(
+        int companyId, DateTime date)
+    {
+        var from = date.Date;
+        var to = from.AddDays(1);
+
+        return await db.AttendanceLogs
+            .Include(a => a.Employee)
+            .Include(a => a.Branch)
+            .Where(a => a.Branch.CompanyId == companyId && a.PunchTime >= from && a.PunchTime < to)
+            .OrderByDescending(a => a.PunchTime)
+            .Select(a => new AttendanceHistoryDto
+            {
+                Id = a.Id,
+                EmployeeName = $"{a.Employee.FirstName} {a.Employee.LastName}",
+                EmployeeCode = a.Employee.EmployeeCode,
+                PunchType = a.PunchType,
+                PunchTime = a.PunchTime,
+                Latitude = a.Latitude,
+                Longitude = a.Longitude,
+                Source = a.Source.ToString(),
+                Notes = a.Notes,
+                BranchName = a.Branch.Name
+            })
+            .ToListAsync();
+    }
 }

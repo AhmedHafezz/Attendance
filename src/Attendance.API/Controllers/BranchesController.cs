@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Attendance.API.Data;
 using Attendance.API.DTOs.Branch;
 using Attendance.API.Models;
@@ -14,14 +15,13 @@ public class BranchesController(AppDbContext db) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<BranchDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] int? companyId)
+    public async Task<IActionResult> GetAll()
     {
+        var companyId = int.Parse(User.FindFirstValue("company_id")!);
         var query = db.Branches
             .Include(b => b.Company)
             .Include(b => b.Employees)
-            .AsQueryable();
-
-        if (companyId.HasValue) query = query.Where(b => b.CompanyId == companyId);
+            .Where(b => b.CompanyId == companyId);
 
         var branches = await query
             .OrderBy(b => b.Name)

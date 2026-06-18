@@ -56,4 +56,15 @@ public class AttendanceController(IAttendanceService attendanceService) : Contro
         var logs = await attendanceService.GetBranchAttendanceAsync(branchId, targetDate);
         return Ok(logs);
     }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("company")]
+    [ProducesResponseType(typeof(IEnumerable<AttendanceHistoryDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCompanyAttendance([FromQuery] DateTime? date)
+    {
+        var companyId = int.Parse(User.FindFirstValue("company_id")!);
+        var targetDate = date ?? DateTime.UtcNow.Date;
+        var logs = await attendanceService.GetCompanyAttendanceAsync(companyId, targetDate);
+        return Ok(logs);
+    }
 }

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Attendance.API.Data;
 using Attendance.API.DTOs.Employee;
 using Attendance.API.Models;
@@ -12,20 +13,21 @@ namespace Attendance.API.Controllers;
 [Route("api/v1/[controller]")]
 public class EmployeesController(AppDbContext db) : ControllerBase
 {
+    private int CurrentCompanyId => int.Parse(User.FindFirstValue("company_id")!);
+
     [Authorize(Roles = "Admin")]
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<EmployeeDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(
-        [FromQuery] int? companyId,
         [FromQuery] int? branchId,
         [FromQuery] bool? isActive)
     {
+        var companyId = CurrentCompanyId;
         var query = db.Employees
             .Include(e => e.Company)
             .Include(e => e.Branch)
-            .AsQueryable();
+            .Where(e => e.CompanyId == companyId);
 
-        if (companyId.HasValue) query = query.Where(e => e.CompanyId == companyId);
         if (branchId.HasValue) query = query.Where(e => e.BranchId == branchId);
         if (isActive.HasValue) query = query.Where(e => e.IsActive == isActive);
 
@@ -57,15 +59,20 @@ public class EmployeesController(AppDbContext db) : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create([FromBody] CreateEmployeeRequest request)
     {
+        var companyId = CurrentCompanyId;
+
         if (await db.Employees.AnyAsync(e => e.Email == request.Email))
             return Conflict(new { message = "Email already in use." });
 
         if (await db.Employees.AnyAsync(e => e.EmployeeCode == request.EmployeeCode))
             return Conflict(new { message = "Employee code already in use." });
 
+        if (!await db.Branches.AnyAsync(b => b.Id == request.BranchId && b.CompanyId == companyId))
+            return BadRequest(new { message = "Invalid branch." });
+
         var employee = new Employee
         {
-            CompanyId = request.CompanyId,
+            CompanyId = companyId,
             BranchId = request.BranchId,
             EmployeeCode = request.EmployeeCode,
             FirstName = request.FirstName,
@@ -92,12 +99,17 @@ public class EmployeesController(AppDbContext db) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateEmployeeRequest request)
     {
+        var companyId = CurrentCompanyId;
         var employee = await db.Employees
             .Include(e => e.Company)
             .Include(e => e.Branch)
-            .FirstOrDefaultAsync(e => e.Id == id);
+            .FirstOrDefaultAsync(e => e.Id == id && e.CompanyId == companyId);
 
         if (employee is null) return NotFound();
+
+        if (request.BranchId.HasValue &&
+            !await db.Branches.AnyAsync(b => b.Id == request.BranchId && b.CompanyId == companyId))
+            return BadRequest(new { message = "Invalid branch." });
 
         if (request.FirstName is not null) employee.FirstName = request.FirstName;
         if (request.LastName is not null) employee.LastName = request.LastName;
@@ -117,7 +129,8 @@ public class EmployeesController(AppDbContext db) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Deactivate(int id)
     {
-        var employee = await db.Employees.FindAsync(id);
+        var employee = await db.Employees
+            .FirstOrDefaultAsync(e => e.Id == id && e.CompanyId == CurrentCompanyId);
         if (employee is null) return NotFound();
 
         employee.IsActive = false;

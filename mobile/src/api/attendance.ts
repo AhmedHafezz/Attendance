@@ -35,3 +35,10 @@ export function getBranchAttendance(branchId: number, date?: string) {
     `/attendance/branch/${branchId}${query ? `?${query}` : ''}`,
   );
 }
+
+export function getCompanyAttendance(date?: string) {
+  const params = new URLSearchParams();
+  if (date) params.set('date', date);
+  const query = params.toString();
+  return apiRequest<AttendanceHistoryItem[]>(`/attendance/company${query ? `?${query}` : ''}`);
+}

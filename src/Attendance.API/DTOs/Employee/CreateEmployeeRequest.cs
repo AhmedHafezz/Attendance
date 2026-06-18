@@ -6,9 +6,6 @@ namespace Attendance.API.DTOs.Employee;
 public class CreateEmployeeRequest
 {
     [Required]
-    public int CompanyId { get; set; }
-
-    [Required]
     public int BranchId { get; set; }
 
     [Required, MaxLength(50)]

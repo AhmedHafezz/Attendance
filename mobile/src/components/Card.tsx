@@ -1,8 +1,21 @@
 import React from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { colors } from '../theme/colors';
 
-export function Card({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
+interface Props {
+  children: React.ReactNode;
+  style?: ViewStyle;
+  onPress?: () => void;
+}
+
+export function Card({ children, style, onPress }: Props) {
+  if (onPress) {
+    return (
+      <TouchableOpacity style={[styles.card, style]} onPress={onPress} activeOpacity={0.75}>
+        {children}
+      </TouchableOpacity>
+    );
+  }
   return <View style={[styles.card, style]}>{children}</View>;
 }
 

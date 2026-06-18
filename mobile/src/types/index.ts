@@ -5,6 +5,20 @@ export enum PunchType {
 
 export type EmployeeRole = 'Employee' | 'Manager' | 'Admin';
 
+// EmployeeDto.Role on the API serializes the C# enum as a number (no string
+// enum converter is configured), unlike LoginResponse.Role which is a plain string.
+export enum EmployeeRoleValue {
+  Employee = 0,
+  Manager = 1,
+  Admin = 2,
+}
+
+export const EMPLOYEE_ROLE_LABEL: Record<EmployeeRoleValue, EmployeeRole> = {
+  [EmployeeRoleValue.Employee]: 'Employee',
+  [EmployeeRoleValue.Manager]: 'Manager',
+  [EmployeeRoleValue.Admin]: 'Admin',
+};
+
 export interface EmployeeInfo {
   id: number;
   employeeCode: string;
@@ -64,6 +78,36 @@ export interface VisitorItem {
   checkOutTime?: string | null;
   badgeNumber?: string | null;
   isCheckedOut: boolean;
+}
+
+export interface EmployeeListItem {
+  id: number;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email: string;
+  phone?: string | null;
+  role: EmployeeRoleValue;
+  profileImageUrl?: string | null;
+  isActive: boolean;
+  companyId: number;
+  companyName: string;
+  branchId: number;
+  branchName: string;
+  createdAt: string;
+}
+
+export interface BranchItem {
+  id: number;
+  companyId: number;
+  companyName: string;
+  name: string;
+  code: string;
+  address?: string | null;
+  isActive: boolean;
+  employeeCount: number;
+  createdAt: string;
 }
 
 export interface ApiErrorBody {
