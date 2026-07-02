@@ -1,6 +1,6 @@
-using System.Security.Claims;
 using Attendance.API.Data;
 using Attendance.API.DTOs.Employee;
+using Attendance.API.Extensions;
 using Attendance.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,8 +13,6 @@ namespace Attendance.API.Controllers;
 [Route("api/v1/[controller]")]
 public class EmployeesController(AppDbContext db) : ControllerBase
 {
-    private int CurrentCompanyId => int.Parse(User.FindFirstValue("company_id")!);
-
     [Authorize(Roles = "Admin")]
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<EmployeeDto>), StatusCodes.Status200OK)]
@@ -22,7 +20,8 @@ public class EmployeesController(AppDbContext db) : ControllerBase
         [FromQuery] int? branchId,
         [FromQuery] bool? isActive)
     {
-        var companyId = CurrentCompanyId;
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
         var query = db.Employees
             .Include(e => e.Company)
             .Include(e => e.Branch)
@@ -39,15 +38,18 @@ public class EmployeesController(AppDbContext db) : ControllerBase
         return Ok(employees);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(EmployeeDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id)
     {
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
         var employee = await db.Employees
             .Include(e => e.Company)
             .Include(e => e.Branch)
-            .FirstOrDefaultAsync(e => e.Id == id);
+            .FirstOrDefaultAsync(e => e.Id == id && e.CompanyId == companyId);
 
         if (employee is null) return NotFound();
         return Ok(MapToDto(employee));
@@ -59,7 +61,7 @@ public class EmployeesController(AppDbContext db) : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create([FromBody] CreateEmployeeRequest request)
     {
-        var companyId = CurrentCompanyId;
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
 
         if (await db.Employees.AnyAsync(e => e.Email == request.Email))
             return Conflict(new { message = "Email already in use." });
@@ -99,7 +101,8 @@ public class EmployeesController(AppDbContext db) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateEmployeeRequest request)
     {
-        var companyId = CurrentCompanyId;
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
         var employee = await db.Employees
             .Include(e => e.Company)
             .Include(e => e.Branch)
@@ -129,8 +132,10 @@ public class EmployeesController(AppDbContext db) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Deactivate(int id)
     {
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
         var employee = await db.Employees
-            .FirstOrDefaultAsync(e => e.Id == id && e.CompanyId == CurrentCompanyId);
+            .FirstOrDefaultAsync(e => e.Id == id && e.CompanyId == companyId);
         if (employee is null) return NotFound();
 
         employee.IsActive = false;

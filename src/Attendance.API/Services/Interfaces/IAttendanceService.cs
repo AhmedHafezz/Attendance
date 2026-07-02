@@ -7,6 +7,6 @@ public interface IAttendanceService
     Task<PunchResponse> PunchAsync(int employeeId, PunchRequest request);
     Task<IEnumerable<AttendanceHistoryDto>> GetHistoryAsync(int employeeId, DateTime? from, DateTime? to);
     Task<IEnumerable<AttendanceSummaryDto>> GetSummaryAsync(int employeeId, int year, int month);
-    Task<IEnumerable<AttendanceHistoryDto>> GetBranchAttendanceAsync(int branchId, DateTime date);
+    Task<IEnumerable<AttendanceHistoryDto>> GetBranchAttendanceAsync(int branchId, int companyId, DateTime date);
     Task<IEnumerable<AttendanceHistoryDto>> GetCompanyAttendanceAsync(int companyId, DateTime date);
 }

@@ -1,5 +1,6 @@
 using Attendance.API.Data;
 using Attendance.API.DTOs.Visitor;
+using Attendance.API.Extensions;
 using Attendance.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,10 +20,12 @@ public class VisitorsController(AppDbContext db) : ControllerBase
         [FromQuery] DateTime? date,
         [FromQuery] bool? activeOnly)
     {
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
         var query = db.VisitorLogs
             .Include(v => v.Branch)
             .Include(v => v.HostEmployee)
-            .AsQueryable();
+            .Where(v => v.Branch.CompanyId == companyId);
 
         if (branchId.HasValue) query = query.Where(v => v.BranchId == branchId);
         if (activeOnly == true) query = query.Where(v => v.CheckOutTime == null);
@@ -60,6 +63,11 @@ public class VisitorsController(AppDbContext db) : ControllerBase
     [ProducesResponseType(typeof(VisitorDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> CheckIn([FromBody] CreateVisitorRequest request)
     {
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
+        if (!await db.Branches.AnyAsync(b => b.Id == request.BranchId && b.CompanyId == companyId))
+            return BadRequest(new { message = "Invalid branch." });
+
         var visitor = new VisitorLog
         {
             BranchId = request.BranchId,
@@ -101,10 +109,12 @@ public class VisitorsController(AppDbContext db) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CheckOut(long id, [FromBody] CheckOutVisitorRequest? request)
     {
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
         var visitor = await db.VisitorLogs
             .Include(v => v.Branch)
             .Include(v => v.HostEmployee)
-            .FirstOrDefaultAsync(v => v.Id == id);
+            .FirstOrDefaultAsync(v => v.Id == id && v.Branch.CompanyId == companyId);
 
         if (visitor is null) return NotFound();
         if (visitor.CheckOutTime.HasValue)

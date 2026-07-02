@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Attendance.API.Data;
 using Attendance.API.DTOs.ZKDevice;
+using Attendance.API.Extensions;
 using Attendance.API.Models;
 using Attendance.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -18,7 +19,11 @@ public class ZKDevicesController(AppDbContext db, IZKSyncService syncService) : 
     [ProducesResponseType(typeof(IEnumerable<ZKDeviceDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll([FromQuery] int? branchId)
     {
-        var query = db.ZKDevices.Include(d => d.Branch).AsQueryable();
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
+        var query = db.ZKDevices
+            .Include(d => d.Branch)
+            .Where(d => d.Branch.CompanyId == companyId);
         if (branchId.HasValue) query = query.Where(d => d.BranchId == branchId);
 
         var devices = await query
@@ -45,6 +50,11 @@ public class ZKDevicesController(AppDbContext db, IZKSyncService syncService) : 
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register([FromBody] RegisterDeviceRequest request)
     {
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
+        if (!await db.Branches.AnyAsync(b => b.Id == request.BranchId && b.CompanyId == companyId))
+            return BadRequest(new { message = "Invalid branch." });
+
         if (await db.ZKDevices.AnyAsync(d => d.DeviceSerial == request.DeviceSerial))
             return Conflict(new { message = "Device serial already registered." });
 
@@ -108,7 +118,10 @@ public class ZKDevicesController(AppDbContext db, IZKSyncService syncService) : 
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Deactivate(int id)
     {
-        var device = await db.ZKDevices.FindAsync(id);
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
+        var device = await db.ZKDevices
+            .FirstOrDefaultAsync(d => d.Id == id && d.Branch.CompanyId == companyId);
         if (device is null) return NotFound();
 
         device.IsActive = false;

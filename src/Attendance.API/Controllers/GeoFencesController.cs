@@ -1,5 +1,6 @@
 using Attendance.API.Data;
 using Attendance.API.DTOs.GeoFence;
+using Attendance.API.Extensions;
 using Attendance.API.Models;
 using Attendance.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -17,7 +18,11 @@ public class GeoFencesController(AppDbContext db, IGpsService gps) : ControllerB
     [ProducesResponseType(typeof(IEnumerable<GeoFenceDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll([FromQuery] int? branchId)
     {
-        var query = db.GeoFences.Include(g => g.Branch).AsQueryable();
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
+        var query = db.GeoFences
+            .Include(g => g.Branch)
+            .Where(g => g.Branch.CompanyId == companyId);
         if (branchId.HasValue) query = query.Where(g => g.BranchId == branchId);
 
         var fences = await query
@@ -43,6 +48,11 @@ public class GeoFencesController(AppDbContext db, IGpsService gps) : ControllerB
     [ProducesResponseType(typeof(GeoFenceDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateGeoFenceRequest request)
     {
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
+        if (!await db.Branches.AnyAsync(b => b.Id == request.BranchId && b.CompanyId == companyId))
+            return BadRequest(new { message = "Invalid branch." });
+
         var fence = new GeoFence
         {
             BranchId = request.BranchId,
@@ -88,7 +98,10 @@ public class GeoFencesController(AppDbContext db, IGpsService gps) : ControllerB
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Delete(int id)
     {
-        var fence = await db.GeoFences.FindAsync(id);
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
+        var fence = await db.GeoFences
+            .FirstOrDefaultAsync(g => g.Id == id && g.Branch.CompanyId == companyId);
         if (fence is null) return NotFound();
 
         db.GeoFences.Remove(fence);

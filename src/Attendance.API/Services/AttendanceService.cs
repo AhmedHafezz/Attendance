@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Attendance.API.Data;
 using Attendance.API.DTOs.Attendance;
 using Attendance.API.Models;
@@ -102,57 +103,42 @@ public class AttendanceService(AppDbContext db) : IAttendanceService
         return summaries;
     }
 
-    public async Task<IEnumerable<AttendanceHistoryDto>> GetBranchAttendanceAsync(
-        int branchId, DateTime date)
+    // Branch attendance is scoped by companyId as well as branchId so a caller
+    // can never read another tenant's branch by passing its id.
+    public Task<IEnumerable<AttendanceHistoryDto>> GetBranchAttendanceAsync(
+        int branchId, int companyId, DateTime date) =>
+        QueryAttendanceAsync(a => a.BranchId == branchId && a.Branch.CompanyId == companyId, date);
+
+    public Task<IEnumerable<AttendanceHistoryDto>> GetCompanyAttendanceAsync(
+        int companyId, DateTime date) =>
+        QueryAttendanceAsync(a => a.Branch.CompanyId == companyId, date);
+
+    private async Task<IEnumerable<AttendanceHistoryDto>> QueryAttendanceAsync(
+        Expression<Func<AttendanceLog, bool>> scope, DateTime date)
     {
         var from = date.Date;
         var to = from.AddDays(1);
 
         return await db.AttendanceLogs
-            .Include(a => a.Employee)
-            .Include(a => a.Branch)
-            .Where(a => a.BranchId == branchId && a.PunchTime >= from && a.PunchTime < to)
+            .Where(scope)
+            .Where(a => a.PunchTime >= from && a.PunchTime < to)
             .OrderByDescending(a => a.PunchTime)
-            .Select(a => new AttendanceHistoryDto
-            {
-                Id = a.Id,
-                EmployeeName = $"{a.Employee.FirstName} {a.Employee.LastName}",
-                EmployeeCode = a.Employee.EmployeeCode,
-                PunchType = a.PunchType,
-                PunchTime = a.PunchTime,
-                Latitude = a.Latitude,
-                Longitude = a.Longitude,
-                Source = a.Source.ToString(),
-                Notes = a.Notes,
-                BranchName = a.Branch.Name
-            })
+            .Select(ToHistoryDto)
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<AttendanceHistoryDto>> GetCompanyAttendanceAsync(
-        int companyId, DateTime date)
-    {
-        var from = date.Date;
-        var to = from.AddDays(1);
-
-        return await db.AttendanceLogs
-            .Include(a => a.Employee)
-            .Include(a => a.Branch)
-            .Where(a => a.Branch.CompanyId == companyId && a.PunchTime >= from && a.PunchTime < to)
-            .OrderByDescending(a => a.PunchTime)
-            .Select(a => new AttendanceHistoryDto
-            {
-                Id = a.Id,
-                EmployeeName = $"{a.Employee.FirstName} {a.Employee.LastName}",
-                EmployeeCode = a.Employee.EmployeeCode,
-                PunchType = a.PunchType,
-                PunchTime = a.PunchTime,
-                Latitude = a.Latitude,
-                Longitude = a.Longitude,
-                Source = a.Source.ToString(),
-                Notes = a.Notes,
-                BranchName = a.Branch.Name
-            })
-            .ToListAsync();
-    }
+    private static readonly Expression<Func<AttendanceLog, AttendanceHistoryDto>> ToHistoryDto =
+        a => new AttendanceHistoryDto
+        {
+            Id = a.Id,
+            EmployeeName = $"{a.Employee.FirstName} {a.Employee.LastName}",
+            EmployeeCode = a.Employee.EmployeeCode,
+            PunchType = a.PunchType,
+            PunchTime = a.PunchTime,
+            Latitude = a.Latitude,
+            Longitude = a.Longitude,
+            Source = a.Source.ToString(),
+            Notes = a.Notes,
+            BranchName = a.Branch.Name
+        };
 }

@@ -3,7 +3,7 @@ import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import * as employeesApi from '../api/employees';
-import { EMPLOYEE_ROLE_LABEL, type EmployeeListItem } from '../types';
+import { EMPLOYEE_ROLE_LABEL, EmployeeRoleValue, type EmployeeListItem } from '../types';
 import { Card } from '../components/Card';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { StatusPill } from '../components/StatusPill';
@@ -55,7 +55,10 @@ export default function EmployeesScreen() {
               <Text style={styles.meta}>{item.email}</Text>
             </View>
             <View style={styles.badges}>
-              <StatusPill label={EMPLOYEE_ROLE_LABEL[item.role]} tone={item.role === 2 ? 'warning' : 'neutral'} />
+              <StatusPill
+                label={EMPLOYEE_ROLE_LABEL[item.role]}
+                tone={item.role === EmployeeRoleValue.Admin ? 'warning' : 'neutral'}
+              />
               {!item.isActive && <StatusPill label="Inactive" tone="danger" />}
             </View>
           </Card>

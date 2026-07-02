@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Attendance.API.DTOs.Attendance;
+using Attendance.API.Extensions;
 using Attendance.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -52,8 +53,10 @@ public class AttendanceController(IAttendanceService attendanceService) : Contro
         int branchId,
         [FromQuery] DateTime? date)
     {
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
         var targetDate = date ?? DateTime.UtcNow.Date;
-        var logs = await attendanceService.GetBranchAttendanceAsync(branchId, targetDate);
+        var logs = await attendanceService.GetBranchAttendanceAsync(branchId, companyId, targetDate);
         return Ok(logs);
     }
 
@@ -62,7 +65,8 @@ public class AttendanceController(IAttendanceService attendanceService) : Contro
     [ProducesResponseType(typeof(IEnumerable<AttendanceHistoryDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCompanyAttendance([FromQuery] DateTime? date)
     {
-        var companyId = int.Parse(User.FindFirstValue("company_id")!);
+        if (User.GetCompanyId() is not int companyId) return Unauthorized();
+
         var targetDate = date ?? DateTime.UtcNow.Date;
         var logs = await attendanceService.GetCompanyAttendanceAsync(companyId, targetDate);
         return Ok(logs);
